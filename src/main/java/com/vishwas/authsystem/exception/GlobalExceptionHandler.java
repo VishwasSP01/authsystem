@@ -1,12 +1,6 @@
 package com.vishwas.authsystem.exception;
 
 // Create global exception handler.
-// Requirements:
-// - Annotate with @RestControllerAdvice
-// - Handle UserAlreadyExistsException
-// - Return ResponseEntity with BAD_REQUEST status
-// - Return error message in response body
-
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

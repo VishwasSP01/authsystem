@@ -1,9 +1,6 @@
 package com.vishwas.authsystem.exception;
 
 // Create custom exception for invalid login credentials.
-// Requirements:
-// - Extend RuntimeException
-// - Create constructor accepting message
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

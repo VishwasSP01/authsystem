@@ -47,12 +47,6 @@ public class JwtService {
     }
 
     // Create JWT authentication filter.
-// Requirements:
-// - Extend OncePerRequestFilter
-// - Extract JWT token from Authorization header
-// - Validate token using JwtService
-// - Extract email from token
-// - Authenticate user in SecurityContextHolder
 
 
     public boolean validateToken(String token) {
