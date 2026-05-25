@@ -5,6 +5,7 @@ import com.vishwas.authsystem.dto.LoginRequest;
 import com.vishwas.authsystem.dto.RegisterRequest;
 import com.vishwas.authsystem.entity.User;
 import com.vishwas.authsystem.exception.UserAlreadyExistsException;
+import com.vishwas.authsystem.exception.InvalidCredentialsException;
 import com.vishwas.authsystem.repository.UserRepository;
 import com.vishwas.authsystem.service.AuthService;
 import com.vishwas.authsystem.service.JwtService;
@@ -76,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail());
 
         if (user == null) {
-            throw new RuntimeException("User not found");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         // Validate password
@@ -85,7 +86,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getPassword()
         )) {
 
-            throw new RuntimeException("Invalid password");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
         // Generate JWT token
