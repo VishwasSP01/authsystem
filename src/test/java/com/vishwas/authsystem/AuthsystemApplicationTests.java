@@ -5,7 +5,12 @@ import com.vishwas.authsystem.dto.LoginRequest;
 import com.vishwas.authsystem.dto.RegisterRequest;
 import com.vishwas.authsystem.entity.User;
 import com.vishwas.authsystem.repository.UserRepository;
+import com.vishwas.authsystem.repository.RefreshTokenRepository;
+import com.vishwas.authsystem.dto.TokenRefreshRequest;
+import com.vishwas.authsystem.dto.TokenRefreshResponse;
+import com.vishwas.authsystem.entity.RefreshToken;
 import com.vishwas.authsystem.service.JwtService;
+import com.vishwas.authsystem.service.RefreshTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,10 +49,17 @@ class AuthsystemApplicationTests {
     private JwtService jwtService;
 
     @Autowired
+    private RefreshTokenService refreshTokenService;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
+        refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -220,5 +232,69 @@ class AuthsystemApplicationTests {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").value("Welcome Admin!"));
+    }
+
+    @Test
+    void tokenRefresh_Success() throws Exception {
+        User user = User.builder()
+                .username("refresh_user")
+                .email("refresh@example.com")
+                .password(passwordEncoder.encode("password"))
+                .role("USER")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        userRepository.save(user);
+
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken("refresh@example.com");
+
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken.getToken());
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").isNotEmpty())
+                .andExpect(jsonPath("$.refreshToken").value(not(refreshToken.getToken())))
+                .andExpect(jsonPath("$.tokenType").value("Bearer"));
+    }
+
+    @Test
+    void tokenRefresh_InvalidToken_Failure() throws Exception {
+        TokenRefreshRequest request = new TokenRefreshRequest("invalid-refresh-token");
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403))
+                .andExpect(jsonPath("$.error").value("Forbidden"))
+                .andExpect(jsonPath("$.message").value(containsString("Refresh token is not in database!")));
+    }
+
+    @Test
+    void logout_Success() throws Exception {
+        User user = User.builder()
+                .username("logout_user")
+                .email("logout@example.com")
+                .password(passwordEncoder.encode("password"))
+                .role("USER")
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+        userRepository.save(user);
+
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken("logout@example.com");
+
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshToken.getToken());
+
+        mockMvc.perform(post("/api/auth/logout")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").value("User logged out successfully"));
+
+        assertTrue(refreshTokenService.findByToken(refreshToken.getToken()).isEmpty());
     }
 }
